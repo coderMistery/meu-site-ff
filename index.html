@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FF Tracker Privado</title>
+    <style>
+        :root { --primary: #ff4500; --bg: #0b0b0d; --card: #16171a; --text: #ffffff; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { width: 90%; max-width: 400px; text-align: center; background: var(--card); padding: 30px; border-radius: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; border-radius: 8px; box-sizing: border-box; text-align: center; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #e63e00; transform: scale(1.02); }
+        .status { margin-top: 15px; font-size: 0.9em; color: #888; }
+        #resultado { margin-top: 20px; display: none; text-align: left; padding: 15px; background: #222; border-radius: 8px; border-left: 4px solid var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>FF Tracker</h1>
+    <input type="text" id="idAlvo" placeholder="Digite o ID do Jogador" value="11180314834">
+    <button onclick="consultar()">BUSCAR DADOS</button>
+    <div id="status" class="status"></div>
+    <div id="resultado">
+        <h3 id="resNick" style="margin:0; color:var(--primary)"></h3>
+        <p id="resDados"></p>
+    </div>
+</div>
+
+<script>
+    async function consultar() {
+        const idAlvo = document.getElementById('idAlvo').value;
+        const status = document.getElementById('status');
+        const resDiv = document.getElementById('resultado');
+
+        // --- CONFIGURAÇÃO ---
+        const uid = "4419141344"; 
+        const pass = "C070B55E19B88CC350B118D87BBE9B49C652358A93E7D644EE7D4542046640B4";
+        // COLOQUE A URL QUE O RENDER TE DEU AQUI:
+        const urlAPI = "https://motor-api-ff.onrender.com/api/token"; 
+
+        status.innerText = "Gerando Token no seu motor...";
+        resDiv.style.display = "none";
+
+        try {
+            // 1. Pega o Token na sua API do Render
+            const response = await fetch(`${urlAPI}?uid=${uid}&password=${pass}`);
+            const data = await response.json();
+
+            if (data.token) {
+                status.innerText = "Token OK! Buscando jogador...";
+                
+                // 2. Busca dados do jogador usando o seu servidor regional 'br'
+                const resFinal = await fetch(`https://freefire-api-six.vercel.app/get_player_personal_show?server=br&uid=${idAlvo}`);
+                const dataFinal = await resFinal.json();
+
+                if (dataFinal.player_info) {
+                    document.getElementById('resNick').innerText = dataFinal.player_info.nickname;
+                    document.getElementById('resDados').innerHTML = `Nível: ${dataFinal.player_info.level}<br>ID: ${idAlvo}`;
+                    resDiv.style.display = "block";
+                    status.innerText = "Sucesso!";
+                } else {
+                    status.innerText = "Jogador não encontrado.";
+                }
+            }
+        } catch (e) {
+            status.innerText = "Erro: Verifique se sua API no Render está 'Live'.";
+            console.error(e);
+        }
+    }
+</script>
+</body>
+</html>

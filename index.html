@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FF TRACKER PRIVADO</title>
+    <title>FF TRACKER PRO</title>
     <style>
         :root { --primary: #ff4500; --bg: #0b0b0d; --card: #16171a; --text: #ffffff; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
@@ -11,32 +11,21 @@
         input { width: 100%; padding: 12px; margin: 10px 0; background: #222; border: 1px solid #444; color: white; border-radius: 8px; box-sizing: border-box; text-align: center; }
         button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         button:hover { background: #e63e00; transform: scale(1.02); }
-        .status { margin-top: 15px; font-size: 0.8em; color: #888; height: 20px; }
+        .status { margin-top: 15px; font-size: 0.8em; color: #888; min-height: 20px; }
         #resultado { margin-top: 20px; display: none; text-align: left; padding: 20px; background: #222; border-radius: 10px; border-left: 4px solid var(--primary); }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .stat-item { background: #1a1a1c; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #333; }
-        .stat-label { font-size: 0.7em; color: #888; text-transform: uppercase; }
-        .stat-value { font-size: 1.1em; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="margin-top:0; font-size: 1.5rem;">FF TRACKER PRO</h1>
+    <h1 style="margin:0 0 20px 0; font-size: 1.5rem;">FF TRACKER PRO</h1>
     <input type="text" id="idAlvo" placeholder="Digite o ID do Jogador" value="11180314834">
     <button onclick="consultar()">BUSCAR ESTATÍSTICAS</button>
     <div id="status" class="status"></div>
 
     <div id="resultado">
         <h2 id="resNick" style="margin:0; color:var(--primary)">NICKNAME</h2>
-        <p id="resID" style="font-size: 0.8em; color: #666; margin: 5px 0 15px 0;"></p>
-        
-        <div class="stat-grid">
-            <div class="stat-item"><div class="stat-label">Nível</div><div class="stat-value" id="resLevel">-</div></div>
-            <div class="stat-item"><div class="stat-label">Taxa HS</div><div class="stat-value" id="resHS">-</div></div>
-            <div class="stat-item"><div class="stat-label">K/D Ratio</div><div class="stat-value" id="resKD">-</div></div>
-            <div class="stat-item"><div class="stat-label">Likes</div><div class="stat-value" id="resLikes">-</div></div>
-        </div>
+        <p id="resInfo" style="line-height: 1.6; margin-top: 10px;"></p>
     </div>
 </div>
 
@@ -46,50 +35,52 @@
         const status = document.getElementById('status');
         const resDiv = document.getElementById('resultado');
 
-        // Configurações do seu Motor Render
-        const apiConfig = {
-            url: "https://motor-api-ff.onrender.com/api/token",
+        // Configurações do seu Motor no Render
+        const apiURL = "https://motor-api-ff.onrender.com/api/token";
+        const credenciais = {
             uid: "4419141344",
             pass: "C070B55E19B88CC350B118D87BBE9B49C652358A93E7D644EE7D4542046640B4"
         };
 
-        status.innerText = "Conectando ao motor...";
+        status.innerText = "Iniciando motor...";
         resDiv.style.display = "none";
 
         try {
-            // 1. Pega o Token (Lendo access_token corretamente)
-            const tokenRes = await fetch(`${apiConfig.url}?uid=${apiConfig.uid}&password=${apiConfig.pass}`);
+            // 1. Obtendo o Token
+            const tokenRes = await fetch(`${apiURL}?uid=${credenciais.uid}&password=${credenciais.pass}`);
             const tokenData = await tokenRes.json();
-            const token = tokenData.access_token || tokenData.token;
+            
+            // Tenta ler 'access_token' ou 'token'
+            const meuToken = tokenData.access_token || tokenData.token;
 
-            if (!token) throw new Error("Falha ao gerar Token de acesso.");
+            if (!meuToken) {
+                status.innerText = "Erro: Resposta do motor incompleta.";
+                console.log("Resposta da API:", tokenData);
+                return;
+            }
 
-            status.innerText = "Token OK! Buscando estatísticas...";
+            status.innerText = "Token obtido! Localizando jogador...";
 
-            // 2. Busca dados detalhados do jogador
-            const playerRes = await fetch(`https://freefire-api-six.vercel.app/get_player_info?server=br&uid=${id}`);
+            // 2. Buscando dados do Jogador
+            const playerRes = await fetch(`https://freefire-api-six.vercel.app/get_player_personal_show?server=br&uid=${id}`);
             const playerData = await playerRes.json();
 
-            if (playerData.basicInfo) {
-                // Preenche os campos
-                document.getElementById('resNick').innerText = playerData.basicInfo.nickname;
-                document.getElementById('resID').innerText = `ID: ${id} | Região: BR`;
-                document.getElementById('resLevel').innerText = playerData.basicInfo.level;
-                document.getElementById('resLikes').innerText = playerData.basicInfo.likedCnt || "0";
-
-                // Cálculo básico de HS (Estatística de Carreira)
-                const career = playerData.socialInfo || {};
-                document.getElementById('resHS').innerText = "42.5%"; // Exemplo de campo calculado
-                document.getElementById('resKD').innerText = "2.85";
-
+            if (playerData.player_info) {
+                document.getElementById('resNick').innerText = playerData.player_info.nickname;
+                document.getElementById('resInfo').innerHTML = `
+                    <strong>Nível:</strong> ${playerData.player_info.level}<br>
+                    <strong>ID:</strong> ${id}<br>
+                    <strong>XP:</strong> ${playerData.player_info.exp.toLocaleString()}
+                `;
                 resDiv.style.display = "block";
-                status.innerText = "Consulta finalizada!";
+                status.innerText = "Sucesso!";
             } else {
-                status.innerText = "Jogador não encontrado.";
+                status.innerText = "Jogador não encontrado no servidor BR.";
             }
+
         } catch (e) {
-            status.innerText = "Erro: " + e.message;
-            console.error(e);
+            status.innerText = "Erro de conexão. Verifique se o Render não suspendeu a API.";
+            console.error("Erro detalhado:", e);
         }
     }
 </script>

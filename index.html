@@ -35,51 +35,63 @@
         const status = document.getElementById('status');
         const resDiv = document.getElementById('resultado');
 
-        // Configurações do seu Motor no Render
         const apiURL = "https://motor-api-ff.onrender.com/api/token";
         const credenciais = {
             uid: "4419141344",
             pass: "C070B55E19B88CC350B118D87BBE9B49C652358A93E7D644EE7D4542046640B4"
         };
 
-        status.innerText = "Iniciando motor...";
+        status.innerText = "Conectando ao motor no Render...";
         resDiv.style.display = "none";
 
         try {
-            // 1. Obtendo o Token
-            const tokenRes = await fetch(`${apiURL}?uid=${credenciais.uid}&password=${credenciais.pass}`);
-            const tokenData = await tokenRes.json();
+            // 1. Chamada para o seu motor
+            const response = await fetch(`${apiURL}?uid=${credenciais.uid}&password=${credenciais.pass}`);
             
-            // Tenta ler 'access_token' ou 'token'
-            const meuToken = tokenData.access_token || tokenData.token;
+            if (!response.ok) throw new Error("O Motor no Render respondeu com erro.");
+            
+            const rawData = await response.json();
+            console.log("Dados recebidos do motor:", rawData);
+
+            // Tenta todas as variações possíveis de nome de campo de token
+            const meuToken = rawData.access_token || rawData.token || rawData.jwt || (typeof rawData === 'string' ? rawData : null);
 
             if (!meuToken) {
-                status.innerText = "Erro: Resposta do motor incompleta.";
-                console.log("Resposta da API:", tokenData);
+                status.innerText = "Erro: Motor não enviou um Token válido.";
                 return;
             }
 
-            status.innerText = "Token obtido! Localizando jogador...";
+            status.innerText = "Token gerado! Buscando dados do jogador...";
 
-            // 2. Buscando dados do Jogador
-            const playerRes = await fetch(`https://freefire-api-six.vercel.app/get_player_personal_show?server=br&uid=${id}`);
-            const playerData = await playerRes.json();
+            // 2. Chamada para a API de estatísticas (Servidor Regional)
+            // Usando a rota detalhada para pegar Nickname e Nível
+            const statsRes = await fetch(`https://freefire-api-six.vercel.app/get_player_personal_show?server=br&uid=${id}`);
+            const statsData = await statsRes.json();
 
-            if (playerData.player_info) {
-                document.getElementById('resNick').innerText = playerData.player_info.nickname;
+            if (statsData.player_info) {
+                const info = statsData.player_info;
+                document.getElementById('resNick').innerText = info.nickname || "Sem Nick";
                 document.getElementById('resInfo').innerHTML = `
-                    <strong>Nível:</strong> ${playerData.player_info.level}<br>
-                    <strong>ID:</strong> ${id}<br>
-                    <strong>XP:</strong> ${playerData.player_info.exp.toLocaleString()}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                        <div style="background: #222; padding: 10px; border-radius: 5px; text-align: center;">
+                            <small style="color: #888;">NÍVEL</small><br>
+                            <b style="font-size: 1.2rem; color: #ff4500;">${info.level}</b>
+                        </div>
+                        <div style="background: #222; padding: 10px; border-radius: 5px; text-align: center;">
+                            <small style="color: #888;">EXPERIÊNCIA</small><br>
+                            <b style="font-size: 1.2rem; color: #ff4500;">${info.exp.toLocaleString()}</b>
+                        </div>
+                    </div>
+                    <p style="margin-top: 15px; font-size: 0.9rem; color: #aaa;">ID Consultivo: ${id}</p>
                 `;
                 resDiv.style.display = "block";
-                status.innerText = "Sucesso!";
+                status.innerText = "Consulta finalizada!";
             } else {
                 status.innerText = "Jogador não encontrado no servidor BR.";
             }
 
         } catch (e) {
-            status.innerText = "Erro de conexão. Verifique se o Render não suspendeu a API.";
+            status.innerText = "Falha na conexão. Verifique se o Render está ativo.";
             console.error("Erro detalhado:", e);
         }
     }

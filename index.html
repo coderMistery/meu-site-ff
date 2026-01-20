@@ -25,7 +25,7 @@
 
     <div id="resultado">
         <h2 id="resNick" style="margin:0; color:var(--primary)">NICKNAME</h2>
-        <p id="resInfo" style="line-height: 1.6; margin-top: 10px;"></p>
+        <div id="resInfo" style="line-height: 1.6; margin-top: 10px;"></div>
     </div>
 </div>
 
@@ -35,7 +35,8 @@
         const status = document.getElementById('status');
         const resDiv = document.getElementById('resultado');
 
-        const apiURL = "https://motor-api-ff.onrender.com/api/token";
+        // URL ATUALIZADA CONFORME O SEU RENDER (motor-api-ff-1)
+        const apiURL = "https://motor-api-ff-1.onrender.com/api/token";
         const credenciais = {
             uid: "4419141344",
             pass: "C070B55E19B88CC350B118D87BBE9B49C652358A93E7D644EE7D4542046640B4"
@@ -45,7 +46,7 @@
         resDiv.style.display = "none";
 
         try {
-            // 1. Chamada para o seu motor
+            // 1. Chamada para o seu motor (Render)
             const response = await fetch(`${apiURL}?uid=${credenciais.uid}&password=${credenciais.pass}`);
             
             if (!response.ok) throw new Error("O Motor no Render respondeu com erro.");
@@ -54,7 +55,7 @@
             console.log("Dados recebidos do motor:", rawData);
 
             // Tenta todas as variações possíveis de nome de campo de token
-            const meuToken = rawData.access_token || rawData.token || rawData.jwt || (typeof rawData === 'string' ? rawData : null);
+            const meuToken = rawData.access_token || rawData.token || rawData.jwt;
 
             if (!meuToken) {
                 status.innerText = "Erro: Motor não enviou um Token válido.";
@@ -64,7 +65,6 @@
             status.innerText = "Token gerado! Buscando dados do jogador...";
 
             // 2. Chamada para a API de estatísticas (Servidor Regional)
-            // Usando a rota detalhada para pegar Nickname e Nível
             const statsRes = await fetch(`https://freefire-api-six.vercel.app/get_player_personal_show?server=br&uid=${id}`);
             const statsData = await statsRes.json();
 
@@ -82,7 +82,7 @@
                             <b style="font-size: 1.2rem; color: #ff4500;">${info.exp.toLocaleString()}</b>
                         </div>
                     </div>
-                    <p style="margin-top: 15px; font-size: 0.9rem; color: #aaa;">ID Consultivo: ${id}</p>
+                    <p style="margin-top: 15px; font-size: 0.9rem; color: #aaa; text-align:center;">ID: ${id}</p>
                 `;
                 resDiv.style.display = "block";
                 status.innerText = "Consulta finalizada!";
